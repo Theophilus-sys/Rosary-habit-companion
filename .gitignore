@@ -1,0 +1,6 @@
+token.pickle
+credentials.json
+*.db
+rosary_tracker.db
+__pycache__/
+.ipynb_checkpoints/
