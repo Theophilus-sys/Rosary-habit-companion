@@ -41,6 +41,14 @@ st.markdown(slideshow_css, unsafe_allow_html=True)
 st.title("Catholic AI Rosary Habit Builder")
 st.markdown("80-Day Spritual Transformation Challenge")
 
+def initialize_database():
+    conn = sqlite3.connect("rosary_tracker.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS habit_ledger
+                  (date TEXT PRIMARY KEY, day_number INTEGER, mystery TEXT, status TEXT)''')
+    conn.commit()
+    conn.close()
+initialize_database()
 def get_db_connection():
     return sqlite3.connect("rosary_tracker.db", check_same_thread=False, timeout=10)
 
