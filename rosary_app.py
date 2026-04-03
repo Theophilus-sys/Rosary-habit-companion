@@ -1,8 +1,14 @@
 #For the streamlit experience
-import streamlit as st
-import sqlite3
+import os.path
+import datetime as dt
 import pandas as pd
-import datetime
+import streamlit as st
+import pickle
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+import sqlite3
 
 #Streamlit Page Configuration
 st.set_page_config(page_title="Catholic AI Rosary Companion")
@@ -41,6 +47,73 @@ st.markdown(slideshow_css, unsafe_allow_html=True)
 st.title("Catholic AI Rosary Habit Builder")
 st.markdown("80-Day Spritual Transformation Challenge")
 
+#First hand: Authentication function
+def get_calendar_services():
+    creds = None
+    #file token.pickle stores the user's access and refresh tokens
+    if os.path.exists("token.pickle"):
+        with open("token.pickle","rb") as token:
+            creds = pickle.load(token)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open("token.pickle","wb") as token:
+            pickle.dump(creds,token)
+
+    #calender was changed to calendar
+    return build("calendar","v3", credentials=creds)
+service = get_calendar_services()
+def create_80_day_challenge(service, start_date_str):
+    # 1. Convert start string to a datetime object
+    start_date = dt.datetime.fromisoformat(start_date_str)
+    
+    print(f"🚀 Starting 80-Day Rosary Challenge from {start_date.date()}...")
+
+    for day in range(1, 81):
+        # Calculate the date for this specific day of the challenge
+        current_date = start_date + dt.timedelta(days=day-1)
+        
+        # Determine the Mystery based on the day of the week
+        day_name = current_date.strftime("%A")
+        mysteries = {
+            "Monday": "Joyful", "Tuesday": "Sorrowful", "Wednesday": "Glorious",
+            "Thursday": "Luminous", "Friday": "Sorrowful", "Saturday": "Joyful",
+            "Sunday": "Glorious"
+        }
+        mystery = mysteries.get(day_name)
+
+        # Define the Event structure
+        event_body = {
+            'summary': f'Rosary Day {day}: {mystery} Mysteries',
+            'description': f'Day {day} of your 80-day habit transformation. Meditation on the {mystery} Mysteries.',
+            'start': {
+                'dateTime': current_date.isoformat() + 'Z',
+                'timeZone': 'UTC',
+            },
+            'end': {
+                'dateTime': (current_date + dt.timedelta(minutes=40)).isoformat() + 'Z',
+                'timeZone': 'UTC',
+            },
+            'colorId': '11', # Google's "Bold Blue" to make it stand out
+            'reminders': {
+                'useDefault': False,
+                'overrides': [{'method': 'popup', 'minutes': 15}],
+            },
+        }
+
+        # 2. Push to Google Calendar
+        # 3. Push to your mobile-synced primary calendar
+        result = service.events().insert(calendarId='primary', body=event_body).execute()
+        print(f"✅ 80-Day Automation Active! Link: {result.get('htmlLink')}")
+        
+        if day % 10 == 0 or day == 1:
+            print(f"✅ Day {day} synced! Mystery:{mystery}")
+            
+    print("✨ Mission Accomplished: All 80 days are now on your calendar!")
 def initialize_database():
     conn = sqlite3.connect("rosary_tracker.db")
     c = conn.cursor()
@@ -68,7 +141,7 @@ def mark_done(day):
 
 # 3.Load Data & Today's Info
 df = get_progress()
-today_obj = datetime.date.today()
+today_obj = dt.date.today()
 today_str = today_obj.isoformat()
 today_row = df[df["date"] == today_str]
 
@@ -105,3 +178,9 @@ if not today_row.empty:
 with st.expander("View Full 80-Day Ledger", expanded=True):
     fresh_df = get_progress()
     st.dataframe(fresh_df[["day_number","date","mystery","status"]], use_container_width=True)
+
+if st.button("Initialize Sunday Challenge"):
+    #this calls a function that creates a 80-day rosary commitment plan 
+    create_80_day_challenge(service, "2026-04-05T20:00:00")
+    st.success("Challenge generated For Sunday")
+    st.rerun()
