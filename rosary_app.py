@@ -66,61 +66,25 @@ def get_calendar_services():
 
     #calender was changed to calendar
     return build("calendar","v3", credentials=creds)
-service = get_calendar_services()
-def create_80_day_challenge(service, start_date_str):
-    # 1. Convert start string to a datetime object
-    start_date = dt.datetime.fromisoformat(start_date_str)
-    
-    print(f"🚀 Starting 80-Day Rosary Challenge from {start_date.date()}...")
-
-    for day in range(1, 81):
-        # Calculate the date for this specific day of the challenge
-        current_date = start_date + dt.timedelta(days=day-1)
-        
-        # Determine the Mystery based on the day of the week
-        day_name = current_date.strftime("%A")
-        mysteries = {
-            "Monday": "Joyful", "Tuesday": "Sorrowful", "Wednesday": "Glorious",
-            "Thursday": "Luminous", "Friday": "Sorrowful", "Saturday": "Joyful",
-            "Sunday": "Glorious"
-        }
-        mystery = mysteries.get(day_name)
-
-        # Define the Event structure
-        event_body = {
-            'summary': f'Rosary Day {day}: {mystery} Mysteries',
-            'description': f'Day {day} of your 80-day habit transformation. Meditation on the {mystery} Mysteries.',
-            'start': {
-                'dateTime': current_date.isoformat() + 'Z',
-                'timeZone': 'UTC',
-            },
-            'end': {
-                'dateTime': (current_date + dt.timedelta(minutes=40)).isoformat() + 'Z',
-                'timeZone': 'UTC',
-            },
-            'colorId': '11', # Google's "Bold Blue" to make it stand out
-            'reminders': {
-                'useDefault': False,
-                'overrides': [{'method': 'popup', 'minutes': 15}],
-            },
-        }
-
-        # 2. Push to Google Calendar
-        # 3. Push to your mobile-synced primary calendar
-        result = service.events().insert(calendarId='primary', body=event_body).execute()
-        print(f"✅ 80-Day Automation Active! Link: {result.get('htmlLink')}")
-        
-        if day % 10 == 0 or day == 1:
-            print(f"✅ Day {day} synced! Mystery:{mystery}")
-            
-    print("✨ Mission Accomplished: All 80 days are now on your calendar!")
 def initialize_database():
-    conn = sqlite3.connect("rosary_tracker.db")
+    # 1. Connect to the database
+    conn = sqlite3.connect('rosary_tracker.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS habit_ledger
-                  (date TEXT PRIMARY KEY, day_number INTEGER, mystery TEXT, status TEXT)''')
+
+    # 2. Create the Ledger Table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS habit_ledger (
+            Day_Number INTEGER PRIMARY KEY,
+            Date TEXT,
+            Mystery TEXT,
+            Status TEXT DEFAULT 'Pending',
+            Completion_Time TEXT DEFAULT '00:00:00'
+        )
+    ''')
     conn.commit()
     conn.close()
+
+# Start the ledger
 initialize_database()
 def get_db_connection():
     return sqlite3.connect("rosary_tracker.db", check_same_thread=False, timeout=10)
@@ -134,8 +98,9 @@ def get_progress():
 def mark_done(day):
     conn = get_db_connection()
     cursor = conn.cursor()
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("UPDATE habit_ledger SET status = 'Completed', completion_time = ? WHERE day_number = ?", (now, day))
+    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("UPDATE habit_ledger SET Status = 'Completed', Completion_Time = ? WHERE Day_Number = ?", (now, day))
+    cursor.execute("UPDATE habit_ledger SET Completion_Time = '00:00:00' WHERE Completion_Time IS NULL OR Completion_Time = 'NONE'")
     conn.commit()
     conn.close()
 
@@ -143,7 +108,7 @@ def mark_done(day):
 df = get_progress()
 today_obj = dt.date.today()
 today_str = today_obj.isoformat()
-today_row = df[df["date"] == today_str]
+today_row = df[df["Date"] == today_str]
 
 # # 4. Today's Mystery & Action
 # today_date = datetime.date.today().isoformat()
@@ -153,16 +118,16 @@ st.write(f"### Today: {today_obj.strftime("%A, %B %d, %Y")}")
 
 st.sidebar.header("Your Journey")
 df = get_progress()
-completed = len(df[df["status"] == "Completed"])
+completed = len(df[df["Status"] == "Completed"])
 st.sidebar.metric("Days Completed",f"{completed}/80")
 st.sidebar.progress(completed / 80)
 
 if not today_row.empty:
-    day_num = int(today_row.iloc[0]['day_number'])
-    mystery = today_row.iloc[0]['mystery']
-    status = today_row.iloc[0]['status']
+    day_num = int(today_row.iloc[0]['Day_Number'])
+    Mystery = today_row.iloc[0]['Mystery']
+    status = today_row.iloc[0]['Status']
     
-    st.subheader(f"Day {day_num} : {mystery} Mysteries")
+    st.subheader(f"Day {day_num} : {Mystery} Mysteries")
     
     if status == 'Pending':
         if st.button(f"Mark Day {day_num} as Completed", use_container_width=True,type="primary"):
@@ -177,7 +142,7 @@ if not today_row.empty:
 # 5. History Table (Optional)
 with st.expander("View Full 80-Day Ledger", expanded=True):
     fresh_df = get_progress()
-    st.dataframe(fresh_df[["day_number","date","mystery","status"]], use_container_width=True)
+    st.dataframe(fresh_df[["Day_Number","Date","Mystery","Status","Completion_Time"]], use_container_width=True)
 
 if st.button("Initialize Sunday Challenge"):
     #this calls a function that creates a 80-day rosary commitment plan 
