@@ -1,6 +1,7 @@
 #For the streamlit experience
 import os.path
 import datetime as dt
+from datetime import timedelta
 import pandas as pd
 import streamlit as st
 import pickle
@@ -91,11 +92,40 @@ def initialize_database():
     ''')
     conn.commit()
     conn.close()
-
+weekly_mysteries = {
+    6:"Glorious",#Sunday
+    0:"Joyful",
+    1:"Sorrowful",
+    2:"Glorious",
+    3:"Luminous",
+    4:"Sorrowful",
+    5:"Joyful"
+}
+def habit_df(start_date_str):
+    conn = sqlite3.connect("rosary_tracker.db")
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS habit_ledger (
+                        Day_Number INTEGER PRIMARY KEY,
+                        Date TEXT,
+                        Mystery TEXT,
+                        Status TEXT DEFAULT 'Pending',
+                        Completion_Time TEXT DEFAULT '00:00:00'
+                        )''')
+    cursor.execute("DELETE FROM habit_ledger")
+    start_date = dt.datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M:%S')
+    for day in range(1,81):
+        current_date_obj = (start_date + timedelta(days=day-1))
+        mystery = weekly_mysteries[current_date_obj.weekday()]
+        #current_date_str = current_date_obj.strftime('%Y-%m-%d')
+            
+        cursor.execute('''INSERT INTO habit_ledger(Day_Number, Date, Mystery, Status, Completion_Time) VALUES (?, ?, ?, 'Pending', '00:00:00')''',(day, current_date_obj.strftime('%Y-%m-%d'), mystery))
+    conn.commit()
+    conn.close()
 # Start the ledger
 initialize_database()
 def get_db_connection():
     return sqlite3.connect("rosary_tracker.db", check_same_thread=False, timeout=10)
+    
 
 def get_progress():
     conn = get_db_connection()
@@ -149,10 +179,7 @@ with st.expander("View Full 80-Day Ledger", expanded=True):
     st.dataframe(fresh_df[["Day_Number","Date","Mystery","Status","Completion_Time"]], use_container_width=True)
 
 if st.button("Initialize Sunday Challenge"):
-    #this calls a function that creates a 80-day rosary commitment plan 
-    if os.path.exists("rosary_tracker.db"):
-        os.remove("rosary_tracker.db")
-
+    #this calls a function that creates a 80-day rosary commitment plan
     initialize_database()
     habit_df('2026-04-05T20:00:00')
 
