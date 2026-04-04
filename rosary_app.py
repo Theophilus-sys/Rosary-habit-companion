@@ -9,7 +9,15 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import sqlite3
-
+RESET_DATABASE =True
+if RESET_DATABASE:
+    db_path = "rosary_tracker.db"
+    if os.path.exists(db_path):
+        try:
+            os.remove(db_path)
+            print("db removed")
+        except Exception as e:
+            print("Could not reset db: {e}")
 #Streamlit Page Configuration
 st.set_page_config(page_title="Catholic AI Rosary Companion")
 
@@ -109,10 +117,6 @@ df = get_progress()
 today_obj = dt.date.today()
 today_str = today_obj.isoformat()
 today_row = df[df["Date"] == today_str]
-
-# # 4. Today's Mystery & Action
-# today_date = datetime.date.today().isoformat()
-# today_data = df[df['date'] == today_date]
 
 st.write(f"### Today: {today_obj.strftime("%A, %B %d, %Y")}")
 
