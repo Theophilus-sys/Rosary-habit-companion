@@ -150,6 +150,11 @@ with st.expander("View Full 80-Day Ledger", expanded=True):
 
 if st.button("Initialize Sunday Challenge"):
     #this calls a function that creates a 80-day rosary commitment plan 
-    create_80_day_challenge(service, "2026-04-05T20:00:00")
+    if os.path.exists("rosary_tracker.db"):
+        os.remove("rosary_tracker.db")
+
+    initialize_database()
+    habit_df('2026-04-05T20:00:00')
+
     st.success("Challenge generated For Sunday")
     st.rerun()
