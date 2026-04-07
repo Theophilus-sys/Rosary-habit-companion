@@ -47,7 +47,7 @@ with col2:
     if not today_row.empty:
         current_day = int(today_row.iloc[0]["Day_Number"])
         st.metric ("Challenge Day",f"Day {current_day}")
-        st.subheader(f"Today's Mystery: **{today_row.iloc[0]["Mystery"]}**")
+        st.subheader(f"Today's Mystery: **{today_row.iloc[0]['Mystery']}**")
         if st.button("✅Mark Today as Done", use_container_width=True):
             mark_day_as_done(current_day)
             st.session_state.celebrate = True
