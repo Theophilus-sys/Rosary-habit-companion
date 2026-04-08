@@ -1,6 +1,7 @@
 <img width="1338" height="750" alt="Screenshot 2026-04-08 054036" src="https://github.com/user-attachments/assets/ae984348-4d6f-4a0c-a2e6-8d766869cf87" />
+
 # AI Rosary Habit Companion
-**An 80-Day Spiritual Transformation Agent**
+## *An 80-Day Spiritual Transformation Agent*
 
 ## 🚀 The Mission
 Consistency is the hardest part of building a spiritual habit. This project moves beyond static reminders by architecting an automated system that integrates daily prayer into a digital workflow. It is designed to support an 80-day Rosary challenge through proactive scheduling and data ownership.
